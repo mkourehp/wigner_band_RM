@@ -21,12 +21,16 @@ class RM:
                  band: int = False
                  ) -> None:
         assert matrix_size >= 2 , ValueError(f"Matrix size must be greater that 1. it is {matrix_size}")
+        assert  band <= matrix_size , ValueError(
+            f"Band must be greater that matrix size!  matrix_size: {matrix_size}, band: {band}")
+        
         self.size, self.v, self.iterate, self.band = matrix_size, v, iterate, band
         self._setH()
         if iterate: self._iterate()
 
 
     def _setH(self):
+        # TODO: Diagonal must be the same always.
         self.h = sum(
             [(self.v if i!=0 else 1) * np.diag(np.random.randn(self.size-i), i) for i in range(self.band)]
               )
@@ -62,18 +66,18 @@ class RM:
         plt.colorbar()
         plt.show()
 
-    def get_localization_length(self, n):
-        return 3 / np.sum([abs(c)**4 for c in self.h[:,n]])
-    
+    def get_ipr(self, n):
+        return np.sum([abs(c)**4 for c in self.h[:,n]]) / 3.
+
 
     @property
-    def plot_participation_ratio(self):
+    def plot_ipr(self):
         self._iterate() if self.energies.size == 0 else None
-        plt.plot(range(self.size),[self.get_localization_length(n) for n in range(self.size)], "o")
+        plt.plot(range(self.size),[self.get_ipr(n) for n in range(self.size)], "o")
         plt.show()
 
 
 if __name__ == "__main__":
     obj = RM(matrix_size=1000, v=1, iterate=1, band=300)
-    obj.plot_participation_ratio
+    obj.plot_ipr
     
