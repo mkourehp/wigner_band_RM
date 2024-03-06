@@ -17,7 +17,7 @@ class RM:
     def __init__(self, 
                  matrix_size : int = 2,
                  v: float = 1.0,
-                 iterate: int = 0,
+                 iterate: int = 1,
                  band: int = False
                  ) -> None:
         assert matrix_size >= 2 , ValueError(f"Matrix size must be greater that 1. it is {matrix_size}")
@@ -56,9 +56,24 @@ class RM:
         for row in self.h:
             [print("{:10.3}".format(r), end="\t") for r in row] ; print()
 
+    @property
+    def plot_h(self):
+        plt.imshow(self.h)
+        plt.colorbar()
+        plt.show()
+
+    def get_localization_length(self, n):
+        return 3 / np.sum([abs(c)**4 for c in self.h[:,n]])
+    
+
+    @property
+    def plot_participation_ratio(self):
+        self._iterate() if self.energies.size == 0 else None
+        plt.plot(range(self.size),[self.get_localization_length(n) for n in range(self.size)], "o")
+        plt.show()
+
 
 if __name__ == "__main__":
-    obj = RM(matrix_size=100, v=1, iterate=1, band=10)
-    plt.imshow(obj.h)
-    plt.colorbar()
-    plt.show()
+    obj = RM(matrix_size=1000, v=1, iterate=1, band=300)
+    obj.plot_participation_ratio
+    
