@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 import numpy as np 
 from dataclasses import dataclass
 from tqdm import tqdm
-
+from unfolding import Unfolding 
 
 @dataclass
 class Result:
@@ -14,6 +14,7 @@ class Result:
 class RM:
     h = None
     energies = np.array([])
+    unfolded_energies = np.array([])
     def __init__(self, 
                  matrix_size : int = 2,
                  v: float = 1.0,
@@ -24,30 +25,35 @@ class RM:
         assert  band <= matrix_size , ValueError(
             f"Band must be greater that matrix size!  matrix_size: {matrix_size}, band: {band}")
         
-        self.size, self.v, self.iterate, self.band = matrix_size, v, iterate, band
+        self.size, self.v, self.iterate, self.band = matrix_size, v, iterate, band or matrix_size
+        self.diagonal = np.random.randn(self.size)
         self._setH()
         if iterate: self._iterate()
 
 
-    def _setH(self):
-        # TODO: Diagonal must be the same always.
+    def _setH(self, check_diagonal: bool = False):
         self.h = sum(
-            [(self.v if i!=0 else 1) * np.diag(np.random.randn(self.size-i), i) for i in range(self.band)]
+            [(self.v if i!=0 else 1) * np.diag(np.random.randn(self.size-i), i) for i in range(1, self.band)]
               )
-        self.h += self.h.T
+        self.h += np.diag(self.diagonal)
+        if check_diagonal:
+            assert all([d1 == d2 for d1, d2 in zip(self.h.diagonal(), self.diagonal)])
 
 
-    def solve(self) -> Result:
+    def _solve(self) -> Result:
         res = np.linalg.eigh(a=self.h, UPLO="U")
-        self.energies = np.append(self.energies, res.eigenvalues)
+        self.energies = sorted(np.append(self.energies, res.eigenvalues))
+        if True:
+            self.unfolded_energies = np.append(self.unfolded_energies, 
+                                           Unfolding(self.energies,fit_poly_order=10,discard_percentage=10).unfolded_energies)
         return Result(eigenvalues=res.eigenvalues, eigenvectors=res.eigenvectors)
 
     def _iterate(self):
         if self.iterate == 1:
-            self.solve()
-        for _ in tqdm(range(self.iterate)):
+            self._solve()
+        for _ in range(self.iterate):
             self._setH()
-            self.solve()
+            self._solve()
 
     @property
     def dos(self):
@@ -76,8 +82,29 @@ class RM:
         plt.plot(range(self.size),[self.get_ipr(n) for n in range(self.size)], "o")
         plt.show()
 
+       
+    
+    @property 
+    def r(self):
+        self._iterate() if self.energies.size == 0 else None
+        self.energies.sort()
+        s = np.diff(self.energies)
+        return [s[i] / s[i-1] for i in range(s.size) if s[i-1] != 0]
+    
+    @property
+    def r_til(self):
+        return [min(rr,1./rr) for rr in self.r if rr != 0]
+
 
 if __name__ == "__main__":
-    obj = RM(matrix_size=1000, v=1, iterate=1, band=300)
-    obj.plot_ipr
-    
+    import threading 
+    def run(v):
+        obj = RM(matrix_size=200, v=v, iterate=10)
+        plt.hist(np.diff(obj.unfolded_energies), density=True, bins="auto",label=f"{v:.3f}", alpha=0.7)
+    targets = [threading.Thread(target=run, args=(vv,))  for vv in np.linspace(0.01,10,5)]
+    [t.start() for t in targets]
+    [t.join() for t in targets]
+    stopme = True
+    # plt.legend()
+    # plt.show()
+
