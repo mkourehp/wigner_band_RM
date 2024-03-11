@@ -19,16 +19,17 @@ class RM:
                  matrix_size : int = 2,
                  v: float = 1.0,
                  iterate: int = 1,
-                 band: int = False
+                 band: int = False,
+                 unfold: bool = False
                  ) -> None:
         assert matrix_size >= 2 , ValueError(f"Matrix size must be greater that 1. it is {matrix_size}")
         assert  band <= matrix_size , ValueError(
             f"Band must be greater that matrix size!  matrix_size: {matrix_size}, band: {band}")
         
-        self.size, self.v, self.iterate, self.band = matrix_size, v, iterate, band or matrix_size
+        self.size, self.v, self.iterate, self.band, self.unfold = matrix_size, v, iterate, band or matrix_size, unfold
         self.diagonal = np.random.randn(self.size)
-        self._setH()
         if iterate: self._iterate()
+
 
 
     def _setH(self, check_diagonal: bool = False):
@@ -42,24 +43,38 @@ class RM:
 
     def _solve(self) -> Result:
         res = np.linalg.eigh(a=self.h, UPLO="U")
-        self.energies = sorted(np.append(self.energies, res.eigenvalues))
-        if True:
-            self.unfolded_energies = np.append(self.unfolded_energies, 
-                                           Unfolding(self.energies,fit_poly_order=10,discard_percentage=10).unfolded_energies)
+        self.energies = np.append(self.energies, res.eigenvalues)
+        if self.unfold:
+            self.unfolded_energies = np.append(
+                    self.unfolded_energies,
+                    Unfolding(self.energies,fit_poly_order=12,discard_percentage=10).unfolded_energies
+                )
+        else:
+            self.unfolded_energies = self.energies
         return Result(eigenvalues=res.eigenvalues, eigenvectors=res.eigenvectors)
 
     def _iterate(self):
-        if self.iterate == 1:
-            self._solve()
-        for _ in range(self.iterate):
-            self._setH()
-            self._solve()
+        if self.iterate != 0:
+            for _ in range(self.iterate):
+                self._setH()
+                self._solve()
+        if self.iterate: self.energies = self.energies.reshape(self.iterate, self.size)
 
-    @property
     def dos(self):
-        self._iterate() if self.energies.size == 0 else None
-        plt.hist(self.energies, bins="auto", density=True, histtype="bar", alpha=0.7)
+        plt.hist(self.energies.flatten(), bins="auto", density=True, histtype="bar", alpha=0.7)
         plt.show()
+
+
+    def ldos(self, p: float):
+        assert 0<=p<=1, "Correct Error"
+        ldos = []
+        for row in self.energies:
+            E_min, E_max = min(row), max(row)
+            e = p * (E_max - E_min) + E_min # Get the energy in the pth portion of DoS
+            index = np.argmin(abs(row - e))
+            ldos += self.h[:,index]**2
+        plt.plot(row, self.h[:,index]**2, label= f"{self.v}")
+
 
     @property
     def print_h(self):
@@ -78,18 +93,19 @@ class RM:
 
     @property
     def plot_ipr(self):
-        self._iterate() if self.energies.size == 0 else None
         plt.plot(range(self.size),[self.get_ipr(n) for n in range(self.size)], "o")
         plt.show()
 
        
-    
+
     @property 
     def r(self):
-        self._iterate() if self.energies.size == 0 else None
-        self.energies.sort()
-        s = np.diff(self.energies)
-        return [s[i] / s[i-1] for i in range(s.size) if s[i-1] != 0]
+        r = []   
+        for row in self.energies:
+            row.sort()
+            s = np.diff(row)
+            r += [s[i] / s[i-1] for i in range(s.size) if s[i-1] != 0]
+        return r
     
     @property
     def r_til(self):
@@ -97,14 +113,13 @@ class RM:
 
 
 if __name__ == "__main__":
-    import threading 
-    def run(v):
-        obj = RM(matrix_size=200, v=v, iterate=10)
-        plt.hist(np.diff(obj.unfolded_energies), density=True, bins="auto",label=f"{v:.3f}", alpha=0.7)
-    targets = [threading.Thread(target=run, args=(vv,))  for vv in np.linspace(0.01,10,5)]
-    [t.start() for t in targets]
-    [t.join() for t in targets]
-    stopme = True
-    # plt.legend()
-    # plt.show()
+    for v in np.linspace(1,5,3):
+        obj = RM(matrix_size=500, v=v, band=200, iterate=1, unfold=False)
+        # plt.plot(v, np.average(obj.r_til), "bo")
+        obj.ldos(0.5)
+    plt.legend()
+    plt.show()
 
+
+
+# Calculate LDoS !!!
