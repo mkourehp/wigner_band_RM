@@ -1,6 +1,7 @@
 
 from matplotlib import pyplot as plt
-import numpy as np 
+import numpy as np
+import util
 from dataclasses import dataclass
 from tqdm import tqdm
 from unfolding import Unfolding 
@@ -20,24 +21,29 @@ class RM:
                  v: float = 1.0,
                  iterate: int = 1,
                  band: int = False,
-                 unfold: bool = False
+                 unfold: bool = False,
+                 check: bool = False
                  ) -> None:
         assert matrix_size >= 2 , ValueError(f"Matrix size must be greater that 1. it is {matrix_size}")
         assert  band <= matrix_size , ValueError(
             f"Band must be greater that matrix size!  matrix_size: {matrix_size}, band: {band}")
         
-        self.size, self.v, self.iterate, self.band, self.unfold = matrix_size, v, iterate, band or matrix_size, unfold
+        self.size, self.v, self.iterate, self.band, self.unfold, self.check = (
+            matrix_size, v, iterate, band or matrix_size, unfold, check)
         self.diagonal = np.random.randn(self.size)
         if iterate: self._iterate()
 
+    e_min = lambda self : np.min(self.energies)
+    e_max = lambda self : np.max(self.energies)
 
+    
 
-    def _setH(self, check_diagonal: bool = False):
+    def _setH(self):
         self.h = sum(
             [(self.v if i!=0 else 1) * np.diag(np.random.randn(self.size-i), i) for i in range(1, self.band)]
               )
         self.h += np.diag(self.diagonal)
-        if check_diagonal:
+        if self.check:
             assert all([d1 == d2 for d1, d2 in zip(self.h.diagonal(), self.diagonal)])
 
 
@@ -46,9 +52,10 @@ class RM:
         self.energies = np.append(self.energies, res.eigenvalues)
         if self.unfold:
             self.unfolded_energies = np.append(
-                    self.unfolded_energies,
-                    Unfolding(self.energies,fit_poly_order=12,discard_percentage=10).unfolded_energies
-                )
+                self.unfolded_energies,Unfolding(
+                    self.energies,fit_poly_order=12,discard_percentage=10
+                ).unfolded_energies
+            )
         else:
             self.unfolded_energies = self.energies
         return Result(eigenvalues=res.eigenvalues, eigenvectors=res.eigenvectors)
@@ -65,15 +72,30 @@ class RM:
         plt.show()
 
 
-    def ldos(self, p: float):
-        assert 0<=p<=1, "Correct Error"
-        ldos = []
-        for row in self.energies:
+    def ldos(self, ratio: float = None, 
+             energy: float = None, 
+             s: int = 2,
+             **kwargs):
+        if ratio:
+            assert 0<=ratio<=1, f"ratio must be in [0,1], it is {ratio}"
+        if energy:
+           assert np.min(self.energies)<=energy<=np.max(self.energies),"Emin={:.3f}, Emax={:.3f}, you={:.3f}!".format(
+                np.min(self.energies), np.max(self.energies), energy)
+        else:
+            energy = 0.0
+        ldos = np.zeros((self.size, self.iterate))
+        for i, row in enumerate(self.energies):
             E_min, E_max = min(row), max(row)
-            e = p * (E_max - E_min) + E_min # Get the energy in the pth portion of DoS
+            if ratio:
+                e = ratio * (E_max - E_min) + E_min # Get the energy in the pth portion of DoS
+            else:
+                e = energy
             index = np.argmin(abs(row - e))
-            ldos += self.h[:,index]**2
-        plt.plot(row, self.h[:,index]**2, label= f"{self.v}")
+            ldos[:,i] = self.h[:,index]**2
+        ldos = np.sum(ldos, axis=1) / np.max(np.sum(ldos, axis=1)) # average 
+        ldos = util.merge(ldos, s=s)
+        plt.plot(np.linspace(self.e_min(), self.e_max(), ldos.size), ldos, **kwargs)
+
 
 
     @property
@@ -113,10 +135,10 @@ class RM:
 
 
 if __name__ == "__main__":
-    for v in np.linspace(1,5,3):
-        obj = RM(matrix_size=500, v=v, band=200, iterate=1, unfold=False)
-        # plt.plot(v, np.average(obj.r_til), "bo")
-        obj.ldos(0.5)
+    # for v in np.linspace(1,5,3):
+    for s in range(5,10,2):
+        obj = RM(matrix_size=100, v=1, band=100, iterate=100, unfold=False)
+        obj.ldos(ratio=0.5, s=s, alpha=0.7, label=f"{s}", ls="-.")
     plt.legend()
     plt.show()
 
