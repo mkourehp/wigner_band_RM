@@ -6,5 +6,5 @@ def smooth(y, box_pts):
     y_smooth = np.convolve(y, box, mode='same')
     return y_smooth
 
-def merge(a, s=2):
+def merge(a, s=1):
     return np.array([np.sum(a[s*i:s*(i+1)]) / s for i in range(a.size // s)])
