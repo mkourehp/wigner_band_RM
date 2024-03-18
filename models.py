@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import numpy as np
 from typing import Optional, List
 
@@ -18,6 +18,7 @@ class Params:
 
 @dataclass
 class Result:
+    v: float
     eigenvalues: np.array
     eigenvectors: Optional[np.array] = None
     ldos: Optional[np.array] = None
@@ -26,11 +27,3 @@ class Result:
 @dataclass
 class Results:
     r: List[Optional[Result]]
-    
-    @property
-    def energies(self):
-        return np.array([res.eigenvalues for res in self.r])   
-
-    @property
-    def eigfuncs(self):
-        return np.array([res.eigenvectors for res in self.r]) 
