@@ -13,6 +13,7 @@ class Params:
     band: int = False,
     unfold: bool = False,
     check: bool = False
+    diagonal: np.array = np.array([])
 
 
 
@@ -21,7 +22,6 @@ class Result:
     v: float
     eigenvalues: np.array
     eigenvectors: Optional[np.array] = None
-    ldos: Optional[np.array] = None
 
 
 @dataclass

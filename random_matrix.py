@@ -1,13 +1,12 @@
 
 from matplotlib import pyplot as plt
 import numpy as np
-import util
+import utils
 from typing import List, Optional
 from dataclasses import dataclass
 from tqdm import tqdm
 from unfolding import Unfolding 
 from models import Params, Result, Results
-
 
 class RM:
     h = None
@@ -22,7 +21,7 @@ class RM:
         assert self.params.size >= 2 , ValueError(f"Matrix size must be greater that 1. it is {self.params.size}")
         assert  self.params.band <= self.params.size , ValueError(
             f"Band must be greater that matrix size!  matrix_size: {self.params.size}, band: {self.params.band}")
-        self.diagonal = np.sort(np.random.randn(self.params.size))
+        self.diagonal = np.sort(np.random.randn(self.params.size)) if params.diagonal.size==0 else params.diagonal
         self.results = np.zeros(self.params.iterate, dtype=Result)
         if self.params.iterate: self._iterate()
 
@@ -30,11 +29,6 @@ class RM:
     e_max = property((lambda self : np.max([r.eigenvalues for r in self.results])))
     energies = property(lambda self : np.array([r.eigenvalues for r in self.results]))
     eigfuncs = property(lambda self : np.array([r.eigenvectors for r in self.results]))
-    
-    
-    @staticmethod
-    def get_index_for_value(array: np.array, val: float) -> int:
-        return np.argmin(abs(array- val))
 
     
 
@@ -112,47 +106,88 @@ class RM:
 
     @property
     def plot_ipr(self):
-        plt.plot(range(self.params.size),[self.get_ipr(n) for n in range(self.params.size)], "o")
+        plt.plot(range(self.params.size),[1/self.get_ipr(n) for n in range(self.params.size)], "o")
+        
+        
+    @staticmethod
+    def get_psi_t(t: float, psi0: np.array, energies: np.array) -> np.array:
+        return (psi0**2) * np.log(psi0**2)
+
+    @staticmethod
+    def get_entropy_t(t: float, psi0: np.array, energies: np.array) -> np.array:
+        return np.exp(-1j*energies*t) * (psi0**2)
+
+    def pr_t(self, t_final: float, energy: float = 0.0, steps: int = 100) -> np.array:
+        ipr_t = np.zeros((self.params.iterate, steps))
+        for ir, res in enumerate(self.results):
+            c0_index = utils.get_index_for_value(res.eigenvalues, val=energy)
+            c0 = res.eigenvectors[:, c0_index]
+            ipr_t[ir, :] = np.abs([np.sum(self.get_psi_t(t=t, psi0=c0, energies=res.eigenvalues))
+                  for t in np.linspace(0,t_final, steps)])**4
+            # ipr_tmp = np.append(ipr_tmp, 1. / np.sum(ct)**4))
+        ipr_t = np.sum(ipr_t, axis=0) / self.params.iterate
+        return 1. / ipr_t
 
 
-    def pr_t(self, t_final: float, energy: float = 0.0):
-        pr_t = np.zeros((self.params.iterate, self.params.size))
-        for i, r in enumerate(self.results):
-            index = self.get_index_for_value(r.eigenvalues, val=energy)
-            pr_t[i, :] = np.sum([np.exp(complex(0,1)*r.eigenvalues[j]*t_final) * r.eigenvectors[index, j] for j in range(self.params.size)])
-        return pr_t
-       
+    def entropy_t(self, t_final: float, energy: float = 0.0, steps: int = 100) -> np.array:
+        s_t = np.zeros((self.params.iterate, steps))
+        for ir, res in enumerate(self.results):
+            c0_index = utils.get_index_for_value(res.eigenvalues, val=energy)
+            c0 = res.eigenvectors[:, c0_index]
+            s_t[ir, :] = np.abs([np.sum(self.get_entropy_t(t=t, psi0=c0, energies=res.eigenvalues))
+                  for t in np.linspace(0,t_final, steps)])**4
+            # s_tmp = np.append(s_tmp, 1. / np.sum(ct)**4))
+        s_t = np.sum(s_t, axis=0) / self.params.iterate
+        return 1. / s_t
 
-    @property 
-    def r(self):
-        r = []   
-        for row in self.energies:
-            row.sort()
-            s = np.diff(row)
-            r += [s[i] / s[i-1] for i in range(s.size) if s[i-1] != 0]
+
+
+    @staticmethod
+    def _r(energies):
+        en = np.sort(energies)
+        s = np.diff(en)
+        r = np.array([s[i] / s[i-1] for i in range(s.size) if s[i-1] != 0])
         return r
     
     @property
-    def r_til(self):
-        return [min(rr,1./rr) for rr in self.r if rr != 0]  
+    def r_til(self) -> int:
+        r = []
+        for res in self.results:
+            r += [np.average([min(rr,1./rr) for rr in self._r(res.eigenvalues)])]
+        return np.average(r)
 
 
 
 if __name__ == "__main__":
-    mat_size = 100
-    # for v in np.linspace(0.,.2,5):
-    for band in np.linspace(1,mat_size, 5):
-        params = Params(size=mat_size, v=0.02, band=int(band), iterate=50, unfold=False, eigfunctions=True, ldos=True)
+    mat_size = 40
+    diag = np.linspace(-mat_size/2, mat_size/2, mat_size)
+    for v in np.linspace(0.,1,10):
+    # for band in np.linspace(1,mat_size, 4):
+        params = Params(size=mat_size, 
+                        v=v, 
+                        band=int(mat_size), 
+                        iterate=1000, 
+                        unfold=False, 
+                        eigfunctions=True, 
+                        ldos=True,
+                        diagonal=diag
+                    )
         obj = RM(params=params)
+        ########################################################################
+        # DO NOT TOUCH AREA AS EXAMPLES
         # obj.dos(density=True, alpha=0.6, bins=20,histtype="step", label=f"{band}")
-        # obj.ldos(energy=0.0, alpha=0.7, marker="o", label=f"{int(band):.2f}",)
-        for t in np.linspace(0,1, 100):
-            prt_t = obj.pr_t(energy=0.0, t_final=1.0)
-            stopme=1
-        
+        # obj.ldos(energy=0.0, alpha=0.7, marker="o", label=f"{int(band)}")
+        # obj.plot_ipr
+        # pr_t = obj.pr_t(e6 for i in range(params.iterate)]
+        ########################################################################
+        # plt.plot(obj.pr_t(t_final=100, steps=300), label=f"{v:.2f}")
+        # plt.plot(obj.entropy_t(t_final=100, steps=300), label=f"{v:.2f}")
+        plt.plot(v, obj.r_til, "bo")
     plt.legend()
     plt.show()
-
-
-
-# Calculate Dynamics of PR(t)
+    
+    
+    
+    
+    
+# Calculate <r> & <r_tilda>
