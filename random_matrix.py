@@ -187,7 +187,5 @@ if __name__ == "__main__":
     plt.show()
     
     
-    
-    
-    
-# Calculate <r> & <r_tilda>
+
+# Compare S(t) and PR(t) with analitical solutions
