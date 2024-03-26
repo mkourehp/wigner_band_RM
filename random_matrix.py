@@ -110,11 +110,11 @@ class RM:
         
         
     @staticmethod
-    def get_psi_t(t: float, psi0: np.array, energies: np.array) -> np.array:
-        return (psi0**2) * np.log(psi0**2)
+    def get_entropy_t(t: float, psi: np.array) -> np.array:
+        return (psi**2) * np.log(psi**2)
 
     @staticmethod
-    def get_entropy_t(t: float, psi0: np.array, energies: np.array) -> np.array:
+    def get_psi_t(t: float, psi0: np.array, energies: np.array) -> np.array:
         return np.exp(-1j*energies*t) * (psi0**2)
 
     def pr_t(self, t_final: float, energy: float = 0.0, steps: int = 100) -> np.array:
@@ -134,11 +134,11 @@ class RM:
         for ir, res in enumerate(self.results):
             c0_index = utils.get_index_for_value(res.eigenvalues, val=energy)
             c0 = res.eigenvectors[:, c0_index]
-            s_t[ir, :] = np.abs([np.sum(self.get_entropy_t(t=t, psi0=c0, energies=res.eigenvalues))
+            s_t[ir, :] = np.abs([np.sum(self.get_entropy_t(
+                t=t, psi=self.get_psi_t(energies=res.eigenvalues, t=t, psi0=c0)))
                   for t in np.linspace(0,t_final, steps)])**4
-            # s_tmp = np.append(s_tmp, 1. / np.sum(ct)**4))
         s_t = np.sum(s_t, axis=0) / self.params.iterate
-        return 1. / s_t
+        return s_t
 
 
 
@@ -159,14 +159,14 @@ class RM:
 
 
 if __name__ == "__main__":
-    mat_size = 40
+    mat_size = 100
     diag = np.linspace(-mat_size/2, mat_size/2, mat_size)
-    for v in np.linspace(0.,1,10):
+    for v in np.linspace(0.01,1,3):
     # for band in np.linspace(1,mat_size, 4):
         params = Params(size=mat_size, 
                         v=v, 
                         band=int(mat_size), 
-                        iterate=1000, 
+                        iterate=10, 
                         unfold=False, 
                         eigfunctions=True, 
                         ldos=True,
@@ -180,9 +180,9 @@ if __name__ == "__main__":
         # obj.plot_ipr
         # pr_t = obj.pr_t(e6 for i in range(params.iterate)]
         ########################################################################
-        # plt.plot(obj.pr_t(t_final=100, steps=300), label=f"{v:.2f}")
-        # plt.plot(obj.entropy_t(t_final=100, steps=300), label=f"{v:.2f}")
-        plt.plot(v, obj.r_til, "bo")
+        plt.plot(obj.pr_t(t_final=100, steps=300), label=f"{v:.2f}")
+        # plt.plot(obj.entropy_t(t_final=100, steps=100), label=f"{v:.2f}")
+        # plt.plot(v, obj.r_til, "bo")
     plt.legend()
     plt.show()
     
