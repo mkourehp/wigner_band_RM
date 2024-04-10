@@ -1,9 +1,15 @@
 import numpy as np
 import utils
+from models.models import Params
 import matplotlib.pyplot as plt
 
 class PhysicalFunctions:
     
+    e_min = property((lambda self : np.min([r.eigenvalues for r in self.results])))
+    e_max = property((lambda self : np.max([r.eigenvalues for r in self.results])))
+    energies = property(lambda self : np.array([r.eigenvalues for r in self.results]))
+    eigfuncs = property(lambda self : np.array([r.eigenvectors for r in self.results]))
+
     def pr_t(self, t_final: float, energy: float = 0.0, steps: int = 100) -> np.array:
         ipr_t = np.zeros((self.params.iterate, steps))
         for ir, res in enumerate(self.results):

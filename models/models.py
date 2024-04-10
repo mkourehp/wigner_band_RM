@@ -20,7 +20,6 @@ class Params:
 
 @dataclass
 class Result:
-    v: float
     eigenvalues: np.array
     eigenvectors: Optional[np.array] = None
 
