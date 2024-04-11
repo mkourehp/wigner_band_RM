@@ -2,9 +2,10 @@ import numpy as np
 import utils
 from models.models import Params
 import matplotlib.pyplot as plt
+from src.time_evolution import TimeEvolution
 
-class PhysicalFunctions:
-    
+class PhysicalFunctions(TimeEvolution):
+   
     e_min = property((lambda self : np.min([r.eigenvalues for r in self.results])))
     e_max = property((lambda self : np.max([r.eigenvalues for r in self.results])))
     energies = property(lambda self : np.array([r.eigenvalues for r in self.results]))
@@ -22,10 +23,6 @@ class PhysicalFunctions:
         return 1. / ipr_t
 
 
-    @staticmethod
-    def get_psi_t(t: float, psi0: np.array, energies: np.array) -> np.array:
-        psi0 = psi0 / np.sqrt(np.sum(np.abs(psi0)**2))
-        return np.exp(-1j*energies*t) * (psi0)
 
 
     def entropy_t(self, t_final: float, energy: float = 0.0, steps: int = 100) -> np.array:
@@ -93,15 +90,3 @@ class PhysicalFunctions:
         return np.average(r)
 
 
-    def dos(self, **kwargs):
-        plt.hist(self.energies.flatten(), **kwargs)
-
-    @property
-    def print_h(self):
-        for row in self.h:
-            [print("{:10.3}".format(r), end="\t") for r in row] ; print()
-
-    @property
-    def plot_h(self):
-        plt.imshow(self.h)
-        plt.colorbar()

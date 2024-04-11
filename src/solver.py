@@ -3,8 +3,10 @@ from tqdm import tqdm
 import numpy as np
 from scipy import linalg
 from models.models import Result, Results
+from src.time_evolution import TimeEvolution
 
-class Solver:
+
+class Solver(TimeEvolution):
 
     def get_results(self) -> Results:
         results = np.zeros(self.params.iterate, dtype=Result)
@@ -28,17 +30,3 @@ class Solver:
                       eigenvectors=self.h if self.params.eigfunctions else None)
 
 
-    def _get_H(self) -> np.array:
-        if self.params.H is not False:
-            return self.params.H
-        else:
-            h: np.array = sum([(self.params.v if i!=0 else 1) * np.diag(
-                np.random.randn(self.params.size-i), i)
-                for i in range(1, self.params.band)]
-                )
-            h += np.diag(self.diagonal)
-            if self.params.check:
-                assert all([d1 == d2 for d1, d2 in zip(h.diagonal(), self.diagonal)])
-                for i in range(self.params.band):
-                    assert all([np.sum(d)==0 for d in h.diagonal(self.params.size - i)])
-            return h
