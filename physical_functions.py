@@ -5,6 +5,9 @@ import matplotlib.pyplot as plt
 from src.time_evolution import TimeEvolution
 
 class PhysicalFunctions(TimeEvolution):
+    def __init__(self, params: Params) -> None:
+        super().__init__(params)
+        self.p = params
    
     e_min = property((lambda self : np.min([r.eigenvalues for r in self.results])))
     e_max = property((lambda self : np.max([r.eigenvalues for r in self.results])))
@@ -12,28 +15,28 @@ class PhysicalFunctions(TimeEvolution):
     eigfuncs = property(lambda self : np.array([r.eigenvectors for r in self.results]))
 
     def pr_t(self, t_final: float, energy: float = 0.0, steps: int = 100) -> np.array:
-        ipr_t = np.zeros((self.params.iterate, steps))
+        ipr_t = np.zeros((self.p.iterate, steps))
         for ir, res in enumerate(self.results):
             c0_index = utils.get_index_for_value(res.eigenvalues, val=energy)
             c0 = res.eigenvectors[:, c0_index]
             ipr_t[ir, :] = np.abs([np.sum(self.get_psi_t(t=t, psi0=c0, energies=res.eigenvalues))
                   for t in np.linspace(0,t_final, steps)])**4
             # ipr_tmp = np.append(ipr_tmp, 1. / np.sum(ct)**4))
-        ipr_t = np.sum(ipr_t, axis=0) / self.params.iterate
+        ipr_t = np.sum(ipr_t, axis=0) / self.p.iterate
         return 1. / ipr_t
 
 
 
 
     def entropy_t(self, t_final: float, energy: float = 0.0, steps: int = 100) -> np.array:
-        s_t = np.zeros((self.params.iterate, steps))
+        s_t = np.zeros((self.p.iterate, steps))
         for ir, res in enumerate(self.results):
             c0_index = utils.get_index_for_value(res.eigenvalues, val=energy)
             c0 = res.eigenvectors[:, c0_index]
             s_t[ir, :] = np.abs([np.sum(self.get_entropy_t(
                 t=t, psi=self.get_psi_t(energies=res.eigenvalues, t=t, psi0=c0)))
                   for t in np.linspace(0,t_final, steps)])**4
-        s_t = np.sum(s_t, axis=0) / self.params.iterate
+        s_t = np.sum(s_t, axis=0) / self.p.iterate
         return s_t
 
     
@@ -48,7 +51,7 @@ class PhysicalFunctions(TimeEvolution):
                 np.min(self.energies), np.max(self.energies), energy)
         else:
             energy = 0.0
-        ldos = np.zeros((self.params.iterate, self.params.size))
+        ldos = np.zeros((self.p.iterate, self.p.size))
         for i, row in enumerate(self.results):
             E_min, E_max = min(row.eigenvalues), max(row.eigenvalues)
             if ratio:
@@ -57,8 +60,8 @@ class PhysicalFunctions(TimeEvolution):
                 e = energy
             index = np.argmin(abs(row.eigenvalues - e))
             ldos[i, :] = self.results[i].eigenvectors[index, :] ** 2
-        ldos = np.sum(ldos, axis=0) / self.params.iterate # average 
-        x_axis = np.sum(self.energies, axis=0) / self.params.iterate
+        ldos = np.sum(ldos, axis=0) / self.p.iterate # average 
+        x_axis = np.sum(self.energies, axis=0) / self.p.iterate
         plt.scatter(x_axis, ldos, **kwargs)
 
 
@@ -68,7 +71,7 @@ class PhysicalFunctions(TimeEvolution):
 
     @property
     def plot_ipr(self):
-        plt.plot(range(self.params.size),[1/self.get_ipr(n) for n in range(self.params.size)], "o")
+        plt.plot(range(self.p.size),[1/self.get_ipr(n) for n in range(self.p.size)], "o")
         
         
     @staticmethod
