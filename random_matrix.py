@@ -9,34 +9,55 @@ from models.models import Params, Result
 
 class RM:
     _results = None
+    pf = None
     def __init__(self, params : Params) -> None:
         self.params = params
         self.init = Initialize(params=params)
         self.solver = Solver(params=params, init_obj=self.init)
-        self.pf = PF(params=params, results=self.solver.results)
+        self.pf = PF(params=params, results=self.results)
 
 
     @property
     def results(self)-> List[Result]:
-        if not self._results:
+        if self._results is None:
             self._results = self.solver.get_results() 
             return self._results
         return self._results
 
 
 
-
 if __name__ == "__main__":
-    params = Params(size=5, v=1., band=4,iterate=1,eigfunctions=True, check=True)
+    params = Params(size=50, v=1., band=40,iterate=100,eigfunctions=True, check=True)
+    diag = np.array(range(-params.size//2, params.size//2))
+    params.diagonal = diag
     obj = RM(params=params)
-    psis_t, ss_t = params.iterate*[None], params.iterate*[None]
-    for i, res in enumerate(obj.results):
-        psi_0 = obj.pf.get_vector_from_eigenvalue(evals=res.eigenvalues, evecs=res.eigenvectors, value=0.0)
-        psis_t[i] = np.array([obj.solver.get_psi_t(
-            t=t,psi_0=psi_0,eigenvalues=res.eigenvalues)
-            for t in np.linspace(0,1,2)])
-        ss_t[i] = np.array([obj.pf.entropy(psi_t, psi0=psi_0) for psi_t in psis_t])
+
+    #############################################
+    ## Shannon Entropy
+    # for i, res in enumerate(obj.results): 
+    #     psi0=obj.pf.get_vector_from_eigenvalue(
+    #         evecs=res.eigenvectors,
+    #         evals=res.eigenvalues,
+    #         value=0.)
+    #     s_t = obj.pf.entropy(psi0=psi0,res=res,t0=0,tf=2)
+    #     plt.plot(s_t)
+    #############################################
+    ## Participaton Ratio
+    # t_array = np.linspace(0, 1, 100)
+    # for i, res in enumerate(obj.results): 
+    #     psi_0 = obj.pf.get_vector_from_eigenvalue(
+    #         evecs=res.eigenvectors,
+    #         evals=res.eigenvalues,
+    #         value=0.0)
+    #     psi_0[np.argmin(np.abs(res.eigenvalues))] = 1.0
+    #     ipr_t =  [obj.pf.ipr(
+    #                 psi=obj.pf.get_psi_t(
+    #                 t=t,psi_0=psi_0, 
+    #                 eigenvalues=res.eigenvalues),
+    #                 evecs=res.eigenvectors
+    #             ) for t in t_array]
+    #     plt.plot(t_array, ipr_t)
+    #############################################
     
-    [plt.plot(s_t, "-o", c=f"C0{i}")
-     for i, s_t in enumerate(ss_t)]
+
     plt.show()

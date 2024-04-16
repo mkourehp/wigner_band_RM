@@ -25,7 +25,7 @@ class Solver(TimeEvolution):
 
     @property
     def results(self):
-        if self._results: return self._results
+        if self._results != None: return self._results
         return self.get_results()
 
     def _solve(self) -> Result:
