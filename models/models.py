@@ -22,8 +22,3 @@ class Params:
 class Result:
     eigenvalues: np.array
     eigenvectors: Optional[np.array] = None
-
-
-@dataclass
-class Results:
-    r: List[Optional[Result]]

@@ -22,9 +22,10 @@ class Initialize:
             h += np.diag(self.diagonal)
             if self.p.check:
                 assert all([d1 == d2 for d1, d2 in zip(h.diagonal(), self.diagonal)]), "DiagonalError!"
-                for i in range(self.p.band+1):
-                    assert all(h.diagonal(i)), "Non Zero Elements Error!"
-                    if i==0: continue
-                    assert not all(h.diagonal(self.p.size-i)), "Zero Elements Error!"
+                for i in range(1, self.p.size):
+                    if i <= self.p.band:
+                        assert all(h.diagonal(i)), "Non Zero Elements Error!"
+                    else:
+                        assert not all(h.diagonal(i)), "Zero Elements Error!"
             return h
         return self.p.H
