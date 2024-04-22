@@ -7,6 +7,8 @@ class Initialize:
     def __init__(self, params:Params) -> None:
         self.p = params
         self.diagonal = np.sort(np.random.randn(self.p.size)) if self.p.diagonal.size==0 else self.p.diagonal
+        params.diagonal = self.diagonal
+
     def params_check(self):
         assert self.p.size >= 2 , ValueError(f"Matrix size must be greater that 1. it is {self.p.size}")
         assert  self.p.band <= self.p.size , ValueError(
@@ -22,10 +24,12 @@ class Initialize:
             h += np.diag(self.diagonal)
             if self.p.check:
                 assert all([d1 == d2 for d1, d2 in zip(h.diagonal(), self.diagonal)]), "DiagonalError!"
-                for i in range(1, self.p.size):
-                    if i <= self.p.band:
-                        assert all(h.diagonal(i)), "Non Zero Elements Error!"
-                    else:
+                for i in range(0, self.p.size):
+                    if not self.p.v > 0:
+                        continue
+                    if i>self.p.band:
                         assert not all(h.diagonal(i)), "Zero Elements Error!"
+                    else:
+                        assert all(h.diagonal(self.p.size-i)), "Non Zero Elements Error!"
             return h
         return self.p.H

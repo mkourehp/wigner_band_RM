@@ -27,13 +27,19 @@ class RM:
 
 
 if __name__ == "__main__":
-    params = Params(size=50, v=1., band=40,iterate=100,eigfunctions=True, check=True)
-    diag = np.array(range(-params.size//2, params.size//2))
-    params.diagonal = diag
+    size = 50
+    t_array = np.linspace(0, 1, 100)
+    params = Params(size=size, v=1, band=size-1,iterate=500,eigfunctions=True, check=True)
+    # params.diagonal = np.array(range(-params.size//2, params.size//2))
     obj = RM(params=params)
 
+    
     #############################################
-    ## Shannon Entropy
+    # DoS & LDoS
+    # obj.pf.ldos(energy=0.0)
+    # obj.pf.dos(bins=100)
+    #############################################
+    # Shannon Entropy
     # for i, res in enumerate(obj.results): 
     #     psi0=obj.pf.get_vector_from_eigenvalue(
     #         evecs=res.eigenvectors,
@@ -42,22 +48,23 @@ if __name__ == "__main__":
     #     s_t = obj.pf.entropy(psi0=psi0,res=res,t0=0,tf=2)
     #     plt.plot(s_t)
     #############################################
-    ## Participaton Ratio
-    # t_array = np.linspace(0, 1, 100)
+    # Participaton Ratio
     # for i, res in enumerate(obj.results): 
     #     psi_0 = obj.pf.get_vector_from_eigenvalue(
     #         evecs=res.eigenvectors,
     #         evals=res.eigenvalues,
     #         value=0.0)
-    #     psi_0[np.argmin(np.abs(res.eigenvalues))] = 1.0
-    #     ipr_t =  [obj.pf.ipr(
+    #     pr_t =  [obj.pf.pr(
     #                 psi=obj.pf.get_psi_t(
     #                 t=t,psi_0=psi_0, 
     #                 eigenvalues=res.eigenvalues),
     #                 evecs=res.eigenvectors
     #             ) for t in t_array]
-    #     plt.plot(t_array, ipr_t)
+    #     plt.plot(t_array, pr_t)
     #############################################
+    # Consecutive level spacing
+    print(obj.pf.consec_level_spacing())
+    
     
 
     plt.show()

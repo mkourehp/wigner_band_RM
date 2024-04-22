@@ -15,10 +15,9 @@ class PhysicalFunctions(TimeEvolution):
     energies = property(lambda self : np.array([r.eigenvalues for r in self.res]))
     eigfuncs = property(lambda self : np.array([r.eigenvectors for r in self.res]))
 
-    @staticmethod
-    def get_vector_from_eigenvalue(evecs: np.array, evals: np.array, value: float=0.0):
-        """Returns the eigenvector with the smallest difference between 'value' and its eigenvalue""" 
-        indx = np.argmin(np.abs(evals-value))
+    def get_vector_from_eigenvalue(self, evecs: np.array, evals: np.array, value: float=0.0):
+        """returns a vector, with energy 'value' in non-interacting basis"""
+        indx = np.argmin(np.abs(self.p.diagonal-value))
         return evecs[indx, :]
 
     def entropy(
@@ -73,4 +72,17 @@ class PhysicalFunctions(TimeEvolution):
 
     @staticmethod
     def ipr(psi: np.array, evecs: np.array):
-        return 1. / np.abs(np.sum([np.dot(psi, e) for e in evecs]))**4
+        return abs(sum([(psi[k]*np.sum(evecs[k, :]))**4 for k in range(psi.size)]))
+
+    
+    @staticmethod
+    def pr(psi: np.array, evecs: np.array):
+        return 1./abs(sum([(psi[k]*np.sum(evecs[k, :]))**4 for k in range(psi.size)]))
+
+
+    def consec_level_spacing(self):
+        level_spacing = [np.diff(s) for s in self.energies]
+        r = []
+        for s in level_spacing:
+            r.append(np.min([s[i]/s[i-1] for i in range(s.size)]))
+        return np.average(r)
