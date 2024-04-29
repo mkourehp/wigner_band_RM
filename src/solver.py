@@ -1,4 +1,3 @@
-from unfolding import Unfolding
 from tqdm import tqdm
 from typing import Optional, List
 import numpy as np
@@ -30,14 +29,8 @@ class Solver(TimeEvolution):
 
     def _solve(self) -> Result:
         eigenvalues, self.H = np.linalg.eigh(a=self.H, UPLO="U")
-        if self.p.unfold: # TODO: test it properly
-            self.unfolded_energies = np.append(
-                self.unfolded_energies,Unfolding(
-                    eigenvalues ,fit_poly_order=12,discard_percentage=10
-                ).unfolded_energies)
-        else:
-            self.unfolded_energies = eigenvalues
-        return Result(eigenvalues=eigenvalues, 
-                      eigenvectors=self.H if self.p.eigfunctions else None)
+        return Result(
+            eigenvalues=eigenvalues, 
+            eigenvectors=self.H if self.p.eigfunctions else None)
 
 

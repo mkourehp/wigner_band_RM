@@ -14,17 +14,16 @@ class Singleton(type):
 
 
 @dataclass
-class Params(metaclass=Singleton):
+class Params:
     size : int = 2
     v: float = 1.0
     iterate: int = 1
     band: int = 2
     eigfunctions : bool = False
-    ldos: bool = False
-    unfold: bool = False
     check: bool = False
-    H: np.array = False
-    diagonal: np.array = np.array([])
+    h: np.array = False
+    h0: np.array = np.array([])
+    fixed_diagonal: bool = True
 
 
 
