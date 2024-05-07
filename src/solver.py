@@ -15,6 +15,7 @@ class Solver(TimeEvolution):
 
 
     def get_results(self) -> List[Result]:
+        f'''{100 * "%"}'''
         self._results = np.zeros(self.p.iterate, dtype=Result)
         if self.p.iterate != 0:
             for i in tqdm(range(self.p.iterate)):
@@ -24,10 +25,12 @@ class Solver(TimeEvolution):
 
     @property
     def results(self):
+        f'''Here is some docs from {__name__}'''
         if self._results != None: return self._results
         return self.get_results()
 
     def _solve(self) -> Result:
+        f'''Here is some docs from {__name__}'''
         eigenvalues, self.H = np.linalg.eigh(a=self.H, UPLO="U")
         return Result(
             eigenvalues=eigenvalues, 

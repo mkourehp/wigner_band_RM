@@ -7,7 +7,8 @@ class Initialize:
     def __init__(self, params:Params) -> None:
         self.p = params
         self.h0 = self._get_h0() if self.p.h0.size==0 else self.p.h0
-        self.params_check()
+        self.h = self._get_H()
+        self.params_check() if self.p.check else None
     
     def _get_h0(self):
         return np.arange(self.p.size) - (self.p.size-1)/2
@@ -26,12 +27,8 @@ class Initialize:
                 )
             h += np.diag(self.h0) if self.p.fixed_diagonal else np.diag(np.random.randn(self.p.size))
             if self.p.check:
-                for i in range(0, self.p.size):
-                    if not self.p.v > 0:
-                        continue
-                    if i>self.p.band:
-                        assert not all(h.diagonal(i)), "Zero Elements Error!"
-                    else:
-                        assert all(h.diagonal(self.p.size-i)), "Non Zero Elements Error!"
+                for b in range(1,self.p.size):
+                    if b<=self.p.band :assert all([True for p in h.diagonal(b) if p!=0.0]), "Non Zero Element Error"
+                    if b>self.p.band  :assert all([True for p in h.diagonal(b) if p==0.0]), "Zero Element Error"
             return h
         return self.p.h

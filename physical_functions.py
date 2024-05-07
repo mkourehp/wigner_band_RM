@@ -16,31 +16,19 @@ class PhysicalFunctions(TimeEvolution):
     eigfuncs: np.array = property(lambda self : np.array([r.eigenvectors for r in self.res]))
     coef = lambda i, j, evecs: evecs[i, j]
 
-    def get_vector_from_eigenvalue(self, evecs: np.array, value: float=0.0):
+    def get_vector_from_energy(self, energy: float=0.0):
         """returns a vector, with energy 'value' in non-interacting basis"""
-        indx = np.argmin(np.abs(self.p.diagonal-value))
-        return evecs[indx, :]
+        indx = np.argmin(np.abs(self.p.h0-energy))
+        return np.array([result.eigenvectors[indx, :] for result in self.res])
 
-    def entropy(
-            self, 
-            res: Result,
-            psi0: np.array,
-            t0:float,
-            tf:float,
-            nstep:int = None) -> np.array:
-        nstep = nstep or 100
-        t_array = np.linspace(t0, tf, nstep)
-        s_t = np.zeros(nstep, dtype=float)
-        for i, t in enumerate(t_array):
-            psi_t = self.get_psi_t(t=t, psi_0=psi0, eigenvalues=res.eigenvalues)
-            s_t[i] = self._entropy(psi=psi_t, psi0=psi0, evec=res.eigenvectors)
-        return s_t
 
-    def _entropy(self, psi, psi0, evec):
-        w0 =np.abs(np.sum(psi * psi0))**2
-        wf = np.abs([np.dot(psi, e) for e in evec])**2
-        return -w0 * np.log(w0) - np.sum([w * np.log(w) for w in wf if w])
-    
+    def entropy(self, psi, psi0):
+        wf = np.abs(np.dot(psi, psi0))**2
+        return - np.sum(wf * np.log(wf)) 
+        # return np.sum([np.abs(p)**2 * np.log(np.abs(p)**2) for p in psi])
+        # return -w0 * np.log(w0) - np.sum(wf * np.log(wf))
+        
+        
     def ldos(self, ratio: float = None, 
              energy: float = None) -> dict:
         if ratio:
@@ -62,17 +50,14 @@ class PhysicalFunctions(TimeEvolution):
         ldos = np.sum(ldos, axis=0) / self.p.iterate # average 
         return {"energies": np.sum(self.energies, axis=0) / self.p.iterate,
                 "ldos": ldos}
+        
 
-
-    def ipr(self, psi: np.array, evecs: np.array):
-        ipr = np.array([])
-        for k in range(self.p.size):
-            ipr = np.append(ipr, abs(sum(psi[k]*evecs[k, :]))**4)
-        return sum(ipr)
-
+    def ipr(self, psi: np.array, psi0: np.array):
+        return np.sum(np.abs(np.dot(psi, psi0))**4)
     
-    def pr(self, psi: np.array, evecs: np.array):
-        return 1./self.ipr(psi=psi, evecs=evecs)
+    
+    def pr(self, psi: np.array, psi0: np.array):
+        return 1./abs(sum(psi))**4
 
 
     @property
