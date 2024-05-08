@@ -12,6 +12,12 @@ class Singleton(type):
             cls._instances[cls] = super().__call__(*args, **kwargs)
         return cls._instances[cls]
 
+class EigFuncNotCalc(Exception):
+    def __init__(self, message: str = False):
+        if not message:
+            message = "Eigen Functions are not stored!"            
+        super().__init__(message)
+            
 
 @dataclass
 class Params:

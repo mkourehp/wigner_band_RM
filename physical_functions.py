@@ -1,7 +1,7 @@
 import numpy as np
 import utils
 from typing import List
-from models.models import Params, Result
+from models.models import Params, Result, EigFuncNotCalc
 import matplotlib.pyplot as plt
 from src.time_evolution import TimeEvolution
 
@@ -18,15 +18,14 @@ class PhysicalFunctions(TimeEvolution):
 
     def get_vector_from_energy(self, energy: float=0.0):
         """returns a vector, with energy 'value' in non-interacting basis"""
+        assert all(self.res[0].eigenvectors[0] != None), EigFuncNotCalc()
         indx = np.argmin(np.abs(self.p.h0-energy))
         return np.array([result.eigenvectors[indx, :] for result in self.res])
 
 
     def entropy(self, psi, psi0):
-        wf = np.abs(np.dot(psi, psi0))**2
+        wf = np.abs(np.dot(psi0, psi))**2
         return - np.sum(wf * np.log(wf)) 
-        # return np.sum([np.abs(p)**2 * np.log(np.abs(p)**2) for p in psi])
-        # return -w0 * np.log(w0) - np.sum(wf * np.log(wf))
         
         
     def ldos(self, ratio: float = None, 
