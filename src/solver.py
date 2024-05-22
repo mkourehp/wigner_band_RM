@@ -2,7 +2,7 @@ from tqdm import tqdm
 from typing import Optional, List
 import numpy as np
 from scipy import linalg
-from models.models import Result, Params
+from tools.models import Result, Params
 from src.time_evolution import TimeEvolution
 from src.initializer import Initialize
 

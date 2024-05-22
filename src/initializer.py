@@ -1,7 +1,7 @@
 import numpy as np
 from scipy import linalg
-from models.models import Params
-from utils import print_h
+from tools.models import Params
+from tools.utils import print_h
 
 class Initialize:
     def __init__(self, params:Params) -> None:
@@ -11,7 +11,7 @@ class Initialize:
         self.params_check() if self.p.check else None
     
     def _get_h0(self):
-        return np.arange(self.p.size) - (self.p.size-1)/2
+        return np.random.randn(self.p.size)*self.p.size/2
 
     def params_check(self):
         assert self.p.size >= 2 , ValueError(f"Matrix size must be greater that 1. it is {self.p.size}")

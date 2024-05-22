@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from models.models import Params
+from tools.models import Params
 
 
 

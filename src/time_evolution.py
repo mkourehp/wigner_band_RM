@@ -1,4 +1,4 @@
-from models.models import Params
+from tools.models import Params
 import numpy as np
 
 class TimeEvolution:  
