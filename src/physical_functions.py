@@ -1,6 +1,6 @@
 import numpy as np
 import tools.utils as utils
-from typing import List
+from typing import List, Optional
 from tools.models import Params, Result, EigFuncNotCalc
 import matplotlib.pyplot as plt
 from src.time_evolution import TimeEvolution
@@ -16,6 +16,7 @@ class PhysicalFunctions(TimeEvolution):
     eigfuncs: np.array = property(lambda self : np.array([r.eigenvectors for r in self.res]))
 
     def _gaussian_coef(self,x, E0, dE):
+        assert dE != 0.0, "dE=0.0 Not Implemented!"
         if isinstance(x, float):
             return np.exp(-float(x-E0)**2/(2*dE**2)) / (dE*np.sqrt(2*np.pi))
         return np.array([np.exp(-float(xx-E0)**2/(2*dE**2)) / (dE*np.sqrt(2*np.pi)) for xx in x])
@@ -33,7 +34,8 @@ class PhysicalFunctions(TimeEvolution):
 
     def entropy(self, psi, psi0):
         w0 = np.abs(np.dot(psi0, psi))**2
-        return - w0 * np.log(w0)
+        return - w0 * np.log(w0)    
+
 
     def ldos(self, ratio: float = None, 
              energy: float = None) -> dict:
@@ -56,7 +58,7 @@ class PhysicalFunctions(TimeEvolution):
         ldos = np.sum(ldos, axis=0) / self.p.iterate # average 
         return {"energies": np.sum(self.energies, axis=0) / self.p.iterate,
                 "ldos": ldos}
-        
+
 
     def ipr(self, psi: np.array, psi0: np.array):
         return np.sum(np.abs(np.dot(psi, psi0))**4)
